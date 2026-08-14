@@ -17,6 +17,7 @@ fi
 /bin/mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" "$MODULE_CACHE"
 /bin/cp "$ROOT/Info.plist" "$APP/Contents/Info.plist"
 /bin/cp "$ROOT/Resources/injector.js" "$APP/Contents/Resources/injector.js"
+/bin/cp "$ROOT/Assets/StatusIcon.svg" "$APP/Contents/Resources/StatusIcon.svg"
 
 SDK_PATH="$(/usr/bin/xcrun --show-sdk-path)"
 for ARCH in "${ARCHS[@]}"; do
@@ -37,7 +38,11 @@ done
 /bin/chmod 755 "$APP/Contents/MacOS/CodexLimitPacer"
 /usr/bin/iconutil -c icns "$ROOT/Assets/AppIcon.iconset" -o "$APP/Contents/Resources/AppIcon.icns"
 /usr/bin/plutil -lint "$APP/Contents/Info.plist" >/dev/null
-/usr/bin/codesign --force --deep --sign "${CODESIGN_IDENTITY:--}" --timestamp=none "$APP"
+if [[ "${CODESIGN_IDENTITY:--}" == "-" ]]; then
+  /usr/bin/codesign --force --deep --sign - --timestamp=none "$APP"
+else
+  /usr/bin/codesign --force --deep --options runtime --timestamp --sign "$CODESIGN_IDENTITY" "$APP"
+fi
 /usr/bin/codesign --verify --deep --strict "$APP"
 
 printf 'Built:\n%s\n' "$APP"

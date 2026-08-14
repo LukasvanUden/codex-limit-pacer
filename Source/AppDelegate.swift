@@ -9,6 +9,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var menu: NSMenu!
     private var currentState: CDPManager.ConnectionState = .stopped
     private var promptIsVisible = false
+    private lazy var menuBarImage: NSImage? = {
+        guard let url = Bundle.main.url(forResource: "StatusIcon", withExtension: "svg"),
+              let image = NSImage(contentsOf: url) else { return nil }
+        image.size = NSSize(width: 20, height: 20)
+        image.isTemplate = true
+        return image
+    }()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -24,9 +31,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func configureStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         if let button = statusItem.button {
-            let image = NSImage(systemSymbolName: "chart.bar.xaxis", accessibilityDescription: "Limit Pacer")
-            image?.isTemplate = true
-            button.image = image
+            button.image = menuBarImage
             button.toolTip = "Codex Limit Pacer"
         }
         menu = NSMenu()
@@ -38,7 +43,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func configureManager() {
         cdpManager.onStateChanged = { [weak self] state in
             self?.currentState = state
-            self?.updateStatusIcon(for: state)
             self?.rebuildMenu()
         }
     }
@@ -158,20 +162,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         case .waitingForMenu: return "Connected · open the account menu"
         case .unavailable(let detail): return detail
         }
-    }
-
-    private func updateStatusIcon(for state: CDPManager.ConnectionState) {
-        guard let button = statusItem.button else { return }
-        let symbol: String
-        switch state {
-        case .active: symbol = "chart.bar.xaxis"
-        case .waitingForMenu, .connecting: symbol = "chart.bar.xaxis"
-        case .unavailable: symbol = "exclamationmark.triangle"
-        case .stopped: symbol = "chart.bar.xaxis"
-        }
-        let image = NSImage(systemSymbolName: symbol, accessibilityDescription: "Limit Pacer")
-        image?.isTemplate = true
-        button.image = image
     }
 
     @objc private func restartAction() { restartCodex(showConfirmation: true) }
