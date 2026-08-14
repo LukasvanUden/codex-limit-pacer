@@ -33,3 +33,5 @@ Scripts/build-app.sh
 Or double-click **Install Codex Limit Pacer.command** to build and install it locally.
 
 The project is [MIT licensed](LICENSE).
+
+Built by Lukas van Uden · [X](https://x.com/LukasvanUden) · [LinkedIn](https://www.linkedin.com/in/lukas-van-uden/)
