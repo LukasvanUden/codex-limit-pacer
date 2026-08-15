@@ -17,7 +17,7 @@ fi
 /bin/mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" "$MODULE_CACHE"
 /bin/cp "$ROOT/Info.plist" "$APP/Contents/Info.plist"
 /bin/cp "$ROOT/Resources/injector.js" "$APP/Contents/Resources/injector.js"
-/bin/cp "$ROOT/Assets/StatusIcon.svg" "$APP/Contents/Resources/StatusIcon.svg"
+/bin/cp "$ROOT/Assets/StatusIcon.png" "$APP/Contents/Resources/StatusIcon.png"
 
 SDK_PATH="$(/usr/bin/xcrun --show-sdk-path)"
 for ARCH in "${ARCHS[@]}"; do

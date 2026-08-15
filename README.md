@@ -13,6 +13,7 @@ Limit Pacer lives right below **Usage** in your Codex account menu.
 3. If prompted, let it restart Codex once. Then open your account menu.
 
 It adds the reset date, **Week elapsed**, and **Quota used**. No Settings visit, copied reset date, or extra login.
+The universal app is signed with Developer ID and notarized by Apple.
 
 ## Notes
 

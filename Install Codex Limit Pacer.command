@@ -2,7 +2,7 @@
 set -euo pipefail
 
 clear
-printf '\nCodex Limit Pacer 1.0.3 – Source installer\n'
+printf '\nCodex Limit Pacer 1.0.5 – Source installer\n'
 printf '=============================================\n\n'
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"

@@ -112,6 +112,7 @@ async function waitForActive(client) {
 
 test('ships the live injector instead of a copied test implementation', () => {
   const source = buildInjectorSource();
+  assert.match(source, /version: '1\.0\.5'/);
   assert.match(source, /url: '\/wham\/usage'/);
   assert.match(source, /Math\.abs\(duration - WEEK_SECONDS\) <= WEEK_TOLERANCE_SECONDS/);
   assert.doesNotMatch(source, /Usage & billing/);

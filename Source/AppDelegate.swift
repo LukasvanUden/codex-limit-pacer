@@ -10,7 +10,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var currentState: CDPManager.ConnectionState = .stopped
     private var promptIsVisible = false
     private lazy var menuBarImage: NSImage? = {
-        guard let url = Bundle.main.url(forResource: "StatusIcon", withExtension: "svg"),
+        guard let url = Bundle.main.url(forResource: "StatusIcon", withExtension: "png"),
               let image = NSImage(contentsOf: url) else { return nil }
         image.size = NSSize(width: 20, height: 20)
         image.isTemplate = true
@@ -145,6 +145,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         launch.state = LoginItemManager.isEnabled ? .on : .off
         menu.addItem(launch)
 
+        let about = NSMenuItem(title: "About Codex Limit Pacer…", action: #selector(aboutAction), keyEquivalent: "")
+        about.target = self
+        menu.addItem(about)
+
         let uninstall = NSMenuItem(title: "Uninstall Limit Pacer…", action: #selector(uninstallAction), keyEquivalent: "")
         uninstall.target = self
         menu.addItem(uninstall)
@@ -170,6 +174,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         _ = LoginItemManager.setEnabled(!LoginItemManager.isEnabled)
         rebuildMenu()
     }
+
+    @objc private func aboutAction() {
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
+        NSApp.activate(ignoringOtherApps: true)
+        let alert = NSAlert()
+        alert.messageText = "Codex Limit Pacer"
+        alert.informativeText = "Version \(version)\nBuilt by Lukas van Uden\n\nIndependent, unofficial, and not affiliated with OpenAI."
+        alert.icon = NSApp.applicationIconImage
+        alert.addButton(withTitle: "OK")
+        alert.addButton(withTitle: "X")
+        alert.addButton(withTitle: "LinkedIn")
+        switch alert.runModal() {
+        case .alertSecondButtonReturn:
+            NSWorkspace.shared.open(URL(string: "https://x.com/LukasvanUden")!)
+        case .alertThirdButtonReturn:
+            NSWorkspace.shared.open(URL(string: "https://www.linkedin.com/in/lukas-van-uden/")!)
+        default:
+            break
+        }
+    }
+
     @objc private func quitAction() { NSApp.terminate(nil) }
 
     @objc private func uninstallAction() {

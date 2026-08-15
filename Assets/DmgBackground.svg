@@ -1,0 +1,7 @@
+<svg width="680" height="400" viewBox="0 0 680 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="680" height="400" fill="#F5F7FA"/>
+  <text x="340" y="64" text-anchor="middle" fill="#1D1D1F" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="27" font-weight="700">Drag to install</text>
+  <text x="340" y="96" text-anchor="middle" fill="#6E6E73" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="16">Move Codex Limit Pacer to Applications</text>
+  <path d="M270 220H410" stroke="#68707D" stroke-width="5" stroke-linecap="round"/>
+  <path d="M390 200L410 220L390 240" stroke="#68707D" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
