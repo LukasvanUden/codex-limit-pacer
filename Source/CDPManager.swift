@@ -30,6 +30,7 @@ final class CDPManager {
         case connecting
         case active(String)
         case waitingForMenu
+        case restartRequired
         case unavailable(String)
     }
 
@@ -44,27 +45,17 @@ final class CDPManager {
     private var targetFailureCount = 0
     private var lastState: ConnectionState = .stopped
 
-    init() {
+    init(injectorSource: String? = nil) {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.timeoutIntervalForRequest = 2
         configuration.timeoutIntervalForResource = 3
         session = URLSession(configuration: configuration)
-        if let url = Bundle.main.url(forResource: "injector", withExtension: "js"),
+        if let injectorSource {
+            self.injectorSource = injectorSource
+        } else if let url = Bundle.main.url(forResource: "injector", withExtension: "js"),
            let source = try? String(contentsOf: url, encoding: .utf8) {
-            injectorSource = source
+            self.injectorSource = source
         }
-    }
-
-    static func probe(port: Int, completion: @escaping (Bool) -> Void) {
-        guard let url = URL(string: "http://127.0.0.1:\(port)/json/version") else { completion(false); return }
-        let configuration = URLSessionConfiguration.ephemeral
-        configuration.timeoutIntervalForRequest = 1
-        let session = URLSession(configuration: configuration)
-        session.dataTask(with: url) { data, response, _ in
-            let okay = data != nil && (response as? HTTPURLResponse)?.statusCode == 200
-            DispatchQueue.main.async { completion(okay) }
-            session.invalidateAndCancel()
-        }.resume()
     }
 
     func start(port: Int) {
@@ -108,8 +99,11 @@ final class CDPManager {
                       let data,
                       let targets = try? JSONDecoder().decode([DebugTarget].self, from: data) else {
                     self.targetFailureCount += 1
-                    if self.targetFailureCount >= 4 {
-                        self.updateState(.unavailable("Codex is not running with menu access"))
+                    if self.targetFailureCount == 4 {
+                        let current = self.connections.values
+                        self.connections.removeAll()
+                        current.forEach { $0.close() }
+                        self.updateState(.restartRequired)
                     }
                     return
                 }
@@ -125,7 +119,9 @@ final class CDPManager {
             (target.type == "page" || target.type == "webview") && target.webSocketDebuggerUrl != nil
         }
         let currentIDs = Set(usable.map(\.id))
-        let staleIDs = connections.keys.filter { !currentIDs.contains($0) }
+        let staleIDs = connections.compactMap { id, connection in
+            !currentIDs.contains(id) || connection.closed ? id : nil
+        }
         for id in staleIDs {
             connections.removeValue(forKey: id)?.close()
         }
@@ -147,9 +143,14 @@ final class CDPManager {
         connection.send(method: "Runtime.enable")
         connection.send(method: "Page.enable")
         connection.send(method: "Page.addScriptToEvaluateOnNewDocument", params: ["source": injectorSource])
-        connection.evaluate(injectorSource) { [weak self, weak connection] _ in
+        connection.evaluate(injectorSource) { [weak self, weak connection] result in
             guard let self, let connection else { return }
-            self.queue.async { self.pollStatus(connection) }
+            self.queue.async {
+                switch result {
+                case .success: self.pollStatus(connection)
+                case .failure: self.discard(connection)
+                }
+            }
         }
     }
 
@@ -162,12 +163,26 @@ final class CDPManager {
         connection.evaluate("globalThis.__codexLimitPacerMod?.getStatus?.() ?? null") { [weak self] result in
             guard let self else { return }
             self.queue.async {
-                guard case .success(let value) = result,
-                      let dictionary = value as? JSONDictionary,
-                      let status = LimitPacerRendererStatus(dictionary: dictionary) else { return }
-                self.handle(status)
+                switch result {
+                case .failure:
+                    self.discard(connection)
+                case .success(let value):
+                    guard let dictionary = value as? JSONDictionary,
+                          let status = LimitPacerRendererStatus(dictionary: dictionary) else {
+                        self.inject(into: connection)
+                        return
+                    }
+                    self.handle(status)
+                }
             }
         }
+    }
+
+    private func discard(_ connection: CDPConnection) {
+        guard connections[connection.targetID] === connection else { return }
+        connections.removeValue(forKey: connection.targetID)
+        connection.close()
+        if connections.isEmpty { updateState(.connecting) }
     }
 
     private func handle(_ status: LimitPacerRendererStatus) {

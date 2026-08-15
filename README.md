@@ -20,7 +20,7 @@ The universal app is signed with Developer ID and notarized by Apple.
 - Independent, unofficial, and not affiliated with OpenAI.
 - Reads the signed-in desktop session locally once per minute; it never stores tokens or sends telemetry.
 - It uses undocumented Codex desktop behavior, so a Codex update may require a Pacer update.
-- The one-time restart enables local renderer access while Codex runs; use it on a Mac you trust.
+- The one-time restart enables local renderer access while Codex runs; Pacer reconnects automatically after renderer interruptions and asks before another Codex restart is needed.
 
 ## Build from source
 

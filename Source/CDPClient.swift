@@ -29,6 +29,8 @@ final class CDPConnection {
     private var pending: [Int: (Result<JSONDictionary, Error>) -> Void] = [:]
     private var isClosed = false
 
+    var closed: Bool { queue.sync { isClosed } }
+
     init(targetID: String, title: String, webSocketURL: URL) {
         self.targetID = targetID
         self.targetTitle = title

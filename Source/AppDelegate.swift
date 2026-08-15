@@ -21,10 +21,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         NSApp.setActivationPolicy(.accessory)
         configureStatusItem()
         configureManager()
+        NSWorkspace.shared.notificationCenter.addObserver(
+            self,
+            selector: #selector(codexDidLaunch),
+            name: NSWorkspace.didLaunchApplicationNotification,
+            object: nil
+        )
         connectOrOfferRestart()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        NSWorkspace.shared.notificationCenter.removeObserver(self)
         cdpManager.stop(removeInjection: true)
     }
 
@@ -42,26 +49,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func configureManager() {
         cdpManager.onStateChanged = { [weak self] state in
-            self?.currentState = state
-            self?.rebuildMenu()
+            guard let self else { return }
+            self.currentState = state
+            self.rebuildMenu()
+            if state == .restartRequired, CodexAppLocator.runningApplication() != nil {
+                self.presentRestartExplanation()
+            }
         }
     }
 
     private func connectOrOfferRestart() {
-        let port = AppPreferences.debugPort
-        CDPManager.probe(port: port) { [weak self] available in
-            guard let self else { return }
-            if available {
-                self.cdpManager.start(port: port)
-                return
-            }
-
-            self.currentState = .unavailable("Restart Codex once to insert into the menu")
-            self.rebuildMenu()
-            if CodexAppLocator.runningApplication() != nil {
-                self.presentRestartExplanation()
-            }
-        }
+        cdpManager.start(port: AppPreferences.debugPort)
     }
 
     private func presentRestartExplanation() {
@@ -164,8 +162,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         case .connecting: return "Connecting to Codex…"
         case .active(let detail): return "Active · \(detail)"
         case .waitingForMenu: return "Connected · open the account menu"
+        case .restartRequired: return "Restart Codex once to restore menu access"
         case .unavailable(let detail): return detail
         }
+    }
+
+    @objc private func codexDidLaunch(_ notification: Notification) {
+        guard currentState == .restartRequired,
+              let application = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
+              application.bundleIdentifier == "com.openai.codex" else { return }
+        presentRestartExplanation()
     }
 
     @objc private func restartAction() { restartCodex(showConfirmation: true) }
