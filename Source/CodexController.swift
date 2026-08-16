@@ -47,10 +47,12 @@ final class CodexController {
 
         DispatchQueue.global(qos: .userInitiated).async {
             if let running = CodexAppLocator.runningApplication() {
+                let processIdentifier = running.processIdentifier
                 _ = running.terminate()
-                let deadline = Date().addingTimeInterval(14)
-                while !running.isTerminated && Date() < deadline { Thread.sleep(forTimeInterval: 0.25) }
-                if !running.isTerminated {
+                if !self.waitUntilStopped(processIdentifier, timeout: 4) {
+                    _ = running.forceTerminate()
+                }
+                if !self.waitUntilStopped(processIdentifier, timeout: 6) {
                     DispatchQueue.main.async { completion(.failure(RestartError.couldNotQuit)) }
                     return
                 }
@@ -77,6 +79,15 @@ final class CodexController {
                 DispatchQueue.main.async { completion(.failure(error)) }
             }
         }
+    }
+
+    private func waitUntilStopped(_ processIdentifier: pid_t, timeout: TimeInterval) -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            if NSRunningApplication(processIdentifier: processIdentifier)?.isTerminated != false { return true }
+            Thread.sleep(forTimeInterval: 0.1)
+        }
+        return NSRunningApplication(processIdentifier: processIdentifier)?.isTerminated != false
     }
 
     func activateCodex() {

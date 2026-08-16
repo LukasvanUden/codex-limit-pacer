@@ -383,7 +383,7 @@
   };
   return refresh();
 })({
-  version: '1.0.6',
+  version: '1.0.7',
   widgetId: 'codex-limit-pacer-widget',
   styleId: 'codex-limit-pacer-style',
   neutralTolerance: 4,

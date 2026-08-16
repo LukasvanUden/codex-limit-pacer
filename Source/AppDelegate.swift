@@ -9,6 +9,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var menu: NSMenu!
     private var currentState: CDPManager.ConnectionState = .stopped
     private var promptIsVisible = false
+    private var codexLaunchMonitor: Timer?
+    private var observedCodexPID: pid_t?
     private lazy var menuBarImage: NSImage? = {
         guard let url = Bundle.main.url(forResource: "StatusIcon", withExtension: "png"),
               let image = NSImage(contentsOf: url) else { return nil }
@@ -21,16 +23,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         NSApp.setActivationPolicy(.accessory)
         configureStatusItem()
         configureManager()
+        observedCodexPID = CodexAppLocator.runningApplication()?.processIdentifier
         NSWorkspace.shared.notificationCenter.addObserver(
             self,
             selector: #selector(codexDidLaunch),
             name: NSWorkspace.didLaunchApplicationNotification,
             object: nil
         )
+        let monitor = Timer(timeInterval: 1, repeats: true) { [weak self] _ in self?.pollCodexLaunch() }
+        RunLoop.main.add(monitor, forMode: .common)
+        codexLaunchMonitor = monitor
         connectOrOfferRestart()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        codexLaunchMonitor?.invalidate()
         NSWorkspace.shared.notificationCenter.removeObserver(self)
         cdpManager.stop(removeInjection: true)
     }
@@ -168,10 +175,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc private func codexDidLaunch(_ notification: Notification) {
-        guard currentState == .restartRequired,
-              let application = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
+        guard let application = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
               application.bundleIdentifier == "com.openai.codex" else { return }
-        presentRestartExplanation()
+        handleFreshCodexLaunch(application)
+    }
+
+    private func pollCodexLaunch() {
+        guard let application = CodexAppLocator.runningApplication() else {
+            observedCodexPID = nil
+            return
+        }
+        handleFreshCodexLaunch(application)
+    }
+
+    private func handleFreshCodexLaunch(_ application: NSRunningApplication) {
+        guard application.processIdentifier != observedCodexPID else { return }
+        observedCodexPID = application.processIdentifier
+        if currentState == .restartRequired { restartCodex(showConfirmation: false) }
     }
 
     @objc private func restartAction() { restartCodex(showConfirmation: true) }
