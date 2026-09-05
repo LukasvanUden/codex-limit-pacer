@@ -1,8 +1,9 @@
 #if canImport(AppKit)
 import AppKit
 import Foundation
+import Sparkle
 
-final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, SPUStandardUserDriverDelegate {
     private let cdpManager = CDPManager()
     private let codex = CodexController()
     private var statusItem: NSStatusItem!
@@ -11,6 +12,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var promptIsVisible = false
     private var codexLaunchMonitor: Timer?
     private var observedCodexPID: pid_t?
+    private lazy var updaterController = SPUStandardUpdaterController(
+        startingUpdater: false, updaterDelegate: nil, userDriverDelegate: self
+    )
+
+    var supportsGentleScheduledUpdateReminders: Bool { true }
     private lazy var menuBarImage: NSImage? = {
         guard let url = Bundle.main.url(forResource: "StatusIcon", withExtension: "png"),
               let image = NSImage(contentsOf: url) else { return nil }
@@ -22,6 +28,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         configureStatusItem()
+        updaterController.startUpdater()
         configureManager()
         observedCodexPID = CodexAppLocator.runningApplication()?.processIdentifier
         NSWorkspace.shared.notificationCenter.addObserver(
@@ -150,6 +157,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         launch.state = LoginItemManager.isEnabled ? .on : .off
         menu.addItem(launch)
 
+        menu.addItem(.separator())
+        let checkUpdates = NSMenuItem(title: "Check for Updates…", action: #selector(SPUStandardUpdaterController.checkForUpdates(_:)), keyEquivalent: "")
+        checkUpdates.target = updaterController
+        menu.addItem(checkUpdates)
+
+        let autoCheck = NSMenuItem(title: "Automatically Check for Updates", action: #selector(toggleUpdateChecksAction), keyEquivalent: "")
+        autoCheck.target = self
+        autoCheck.state = updaterController.updater.automaticallyChecksForUpdates ? .on : .off
+        menu.addItem(autoCheck)
+
+        let autoInstall = NSMenuItem(title: "Automatically Install Updates", action: #selector(toggleAutomaticUpdatesAction), keyEquivalent: "")
+        autoInstall.target = self
+        autoInstall.state = updaterController.updater.automaticallyDownloadsUpdates ? .on : .off
+        menu.addItem(autoInstall)
+
+        menu.addItem(.separator())
+
         let about = NSMenuItem(title: "About Codex Limit Pacer…", action: #selector(aboutAction), keyEquivalent: "")
         about.target = self
         menu.addItem(about)
@@ -198,6 +222,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc private func openCodexAction() { codex.activateCodex() }
     @objc private func toggleLoginAction() {
         _ = LoginItemManager.setEnabled(!LoginItemManager.isEnabled)
+        rebuildMenu()
+    }
+
+    @objc private func toggleUpdateChecksAction() {
+        let updater = updaterController.updater
+        updater.automaticallyChecksForUpdates.toggle()
+        if !updater.automaticallyChecksForUpdates { updater.automaticallyDownloadsUpdates = false }
+        rebuildMenu()
+    }
+
+    @objc private func toggleAutomaticUpdatesAction() {
+        let updater = updaterController.updater
+        updater.automaticallyDownloadsUpdates.toggle()
+        if updater.automaticallyDownloadsUpdates { updater.automaticallyChecksForUpdates = true }
         rebuildMenu()
     }
 

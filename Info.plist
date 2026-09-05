@@ -19,9 +19,23 @@
     <key>CFBundlePackageType</key>
     <string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.0.7</string>
+	<string>1.0.8</string>
 	<key>CFBundleVersion</key>
-	<string>8</string>
+	<string>10</string>
+    <key>SUFeedURL</key>
+    <string>https://github.com/LukasvanUden/codex-limit-pacer/releases/latest/download/appcast.xml</string>
+    <key>SUPublicEDKey</key>
+    <string>LIKkzZQ5OLGKO6EqlEXX9B9HBaRSq6vKAAA5yEgwQKo=</string>
+    <key>SUEnableAutomaticChecks</key>
+    <false/>
+    <key>SUAutomaticallyUpdate</key>
+    <false/>
+    <key>SUEnableSystemProfiling</key>
+    <false/>
+    <key>SUVerifyUpdateBeforeExtraction</key>
+    <true/>
+    <key>SURequireSignedFeed</key>
+    <true/>
     <key>LSMinimumSystemVersion</key>
     <string>13.0</string>
     <key>LSMultipleInstancesProhibited</key>

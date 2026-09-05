@@ -146,55 +146,28 @@
     };
   }
 
-  function readDesktopUsage() {
-    const bridge = window.electronBridge;
-    if (!bridge?.sendMessageFromView) {
-      return Promise.reject(new Error('Codex desktop bridge is unavailable'));
+  async function readDesktopUsage() {
+    // Reuse the loaded desktop API client so Codex handles authentication and
+    // its HTTP fetch service. Asset hashes and minified export names change.
+    const moduleURL = [...document.querySelectorAll('link[rel="modulepreload"]')]
+      .map((link) => new URL(link.href))
+      .find((url) => url.origin === location.origin
+        && /^\/assets\/app-initial-[^/]+\.js$/.test(url.pathname));
+    if (!moduleURL) throw new Error('Codex desktop API module is unavailable');
+
+    const exports = await import(moduleURL.href);
+    const clients = Object.values(exports).filter((value) => value
+      && typeof value === 'object'
+      && typeof value.safeGet === 'function');
+    if (clients.length !== 1) throw new Error('Codex desktop HTTP client is unavailable');
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5_000);
+    try {
+      return await clients[0].safeGet('/wham/usage', { signal: controller.signal });
+    } finally {
+      clearTimeout(timeout);
     }
-
-    const requestId = globalThis.crypto?.randomUUID?.() ?? ('codex-limit-pacer-' + Date.now() + '-' + Math.random());
-    return new Promise((resolve, reject) => {
-      let settled = false;
-      let timeout = null;
-
-      const finish = (error, value) => {
-        if (settled) return;
-        settled = true;
-        if (timeout) clearTimeout(timeout);
-        window.removeEventListener('message', onMessage);
-        if (error) reject(error);
-        else resolve(value);
-      };
-
-      const onMessage = (event) => {
-        const message = event.data;
-        if (message?.type !== 'fetch-response' || message.requestId !== requestId) return;
-        if (message.responseType !== 'success' || message.status < 200 || message.status >= 300) {
-          finish(new Error('Codex usage request failed'));
-          return;
-        }
-        try {
-          finish(null, JSON.parse(message.bodyJsonString));
-        } catch (error) {
-          finish(error);
-        }
-      };
-
-      window.addEventListener('message', onMessage);
-      timeout = setTimeout(() => finish(new Error('Codex usage request timed out')), 5_000);
-      Promise.resolve(bridge.sendMessageFromView({
-        type: 'fetch',
-        requestId,
-        method: 'GET',
-        url: '/wham/usage',
-        headers: {
-          'OAI-Language': document.documentElement.lang?.split('-')[0] || navigator.language?.split('-')[0] || 'en',
-          'X-OpenAI-Attach-Auth': '1',
-          'X-OpenAI-Attach-Integrity-State': '1',
-          originator: 'Codex Desktop',
-        },
-      })).catch((error) => finish(error));
-    });
   }
 
   function refreshUsage() {
@@ -383,7 +356,7 @@
   };
   return refresh();
 })({
-  version: '1.0.7',
+  version: '1.0.8',
   widgetId: 'codex-limit-pacer-widget',
   styleId: 'codex-limit-pacer-style',
   neutralTolerance: 4,

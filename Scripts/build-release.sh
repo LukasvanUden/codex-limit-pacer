@@ -11,11 +11,19 @@ NAME="Codex-Limit-Pacer-$VERSION"
 NOTARY_ZIP="$BUILD_DIR/$NAME-notary.zip"
 RW_DMG="$BUILD_DIR/$NAME-rw.dmg"
 VOLUME_NAME="Codex Limit Pacer"
+SPARKLE_DIR="$("$ROOT/Scripts/fetch-sparkle.sh")"
+APPCAST_DIR="$BUILD_DIR/appcast"
+SPARKLE_ACCOUNT="studio.morje.codexusagepace"
 
 : "${CODESIGN_IDENTITY:?Set CODESIGN_IDENTITY to a Developer ID Application certificate}"
 : "${NOTARY_PROFILE:?Set NOTARY_PROFILE to an xcrun notarytool keychain profile}"
 if [[ "$CODESIGN_IDENTITY" != Developer\ ID\ Application:* ]]; then
   echo "CODESIGN_IDENTITY must be a Developer ID Application certificate."
+  exit 1
+fi
+PUBLIC_KEY="$("$SPARKLE_DIR/bin/generate_keys" --account "$SPARKLE_ACCOUNT" -p)"
+if [[ "$PUBLIC_KEY" != "$(/usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' "$ROOT/Info.plist")" ]]; then
+  echo "Sparkle signing key does not match Info.plist." >&2
   exit 1
 fi
 
@@ -27,7 +35,7 @@ fi
 /usr/bin/xcrun stapler staple "$APP"
 /usr/sbin/spctl -a -vv -t exec "$APP"
 /usr/bin/sips -s format png -z 400 680 "$ROOT/Assets/DmgBackground.svg" --out "$STAGING_DIR/background.png" >/dev/null
-/usr/bin/hdiutil create -quiet -size 40m -fs HFS+ -volname "$VOLUME_NAME" -ov "$RW_DMG"
+/usr/bin/hdiutil create -quiet -size 80m -fs HFS+ -volname "$VOLUME_NAME" -ov "$RW_DMG"
 MOUNT_POINT="$(/usr/bin/hdiutil attach -readwrite -noverify -noautoopen "$RW_DMG" | /usr/bin/awk -F '\t' 'NF { mount = $NF } END { print mount }')"
 /usr/bin/ditto "$APP" "$MOUNT_POINT/Codex Limit Pacer.app"
 /bin/ln -s /Applications "$MOUNT_POINT/Applications"
@@ -60,6 +68,16 @@ APPLESCRIPT
 /usr/bin/xcrun notarytool submit "$RELEASE_DIR/$NAME.dmg" --keychain-profile "$NOTARY_PROFILE" --wait
 /usr/bin/xcrun stapler staple "$RELEASE_DIR/$NAME.dmg"
 /usr/bin/ditto -c -k --sequesterRsrc --keepParent "$APP" "$RELEASE_DIR/$NAME.zip"
+/bin/rm -rf "$APPCAST_DIR"
+/bin/mkdir -p "$APPCAST_DIR"
+/bin/cp "$RELEASE_DIR/$NAME.dmg" "$APPCAST_DIR/"
+"$SPARKLE_DIR/bin/generate_appcast" --account "$SPARKLE_ACCOUNT" \
+  --maximum-deltas 0 \
+  --download-url-prefix "https://github.com/LukasvanUden/codex-limit-pacer/releases/download/v$VERSION/" \
+  --link "https://github.com/LukasvanUden/codex-limit-pacer/releases/tag/v$VERSION" \
+  "$APPCAST_DIR"
+/bin/cp "$APPCAST_DIR/appcast.xml" "$RELEASE_DIR/appcast.xml"
+"$SPARKLE_DIR/bin/sign_update" --account "$SPARKLE_ACCOUNT" --verify "$RELEASE_DIR/appcast.xml"
 /bin/rm -rf "$STAGING_DIR" "$NOTARY_ZIP" "$RW_DMG"
 
-printf 'Release files:\n%s\n%s\n' "$RELEASE_DIR/$NAME.dmg" "$RELEASE_DIR/$NAME.zip"
+printf 'Release files:\n%s\n%s\n%s\n' "$RELEASE_DIR/$NAME.dmg" "$RELEASE_DIR/$NAME.zip" "$RELEASE_DIR/appcast.xml"

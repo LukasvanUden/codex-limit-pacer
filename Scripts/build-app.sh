@@ -6,6 +6,7 @@ BUILD_DIR="$ROOT/build"
 APP="$BUILD_DIR/Codex Limit Pacer.app"
 MODULE_CACHE="$BUILD_DIR/module-cache"
 ARCHS=(arm64 x86_64)
+SPARKLE_DIR="$("$ROOT/Scripts/fetch-sparkle.sh")"
 
 if ! /usr/bin/xcrun --find swiftc >/dev/null 2>&1; then
   echo "Apple Command Line Tools are required. Run: xcode-select --install"
@@ -18,6 +19,8 @@ fi
 /bin/cp "$ROOT/Info.plist" "$APP/Contents/Info.plist"
 /bin/cp "$ROOT/Resources/injector.js" "$APP/Contents/Resources/injector.js"
 /bin/cp "$ROOT/Assets/StatusIcon.png" "$APP/Contents/Resources/StatusIcon.png"
+/bin/mkdir -p "$APP/Contents/Frameworks"
+/usr/bin/ditto "$SPARKLE_DIR/Sparkle.framework" "$APP/Contents/Frameworks/Sparkle.framework"
 
 SDK_PATH="$(/usr/bin/xcrun --show-sdk-path)"
 for ARCH in "${ARCHS[@]}"; do
@@ -29,6 +32,8 @@ for ARCH in "${ARCHS[@]}"; do
     -module-cache-path "$MODULE_CACHE/$ARCH" \
     -framework AppKit \
     -framework Foundation \
+    -F "$SPARKLE_DIR" -framework Sparkle \
+    -Xlinker -rpath -Xlinker @executable_path/../Frameworks \
     "$ROOT"/Source/*.swift \
     -o "$MODULE_CACHE/CodexLimitPacer-$ARCH"
 done
@@ -38,11 +43,19 @@ done
 /bin/chmod 755 "$APP/Contents/MacOS/CodexLimitPacer"
 /usr/bin/iconutil -c icns "$ROOT/Assets/AppIcon.iconset" -o "$APP/Contents/Resources/AppIcon.icns"
 /usr/bin/plutil -lint "$APP/Contents/Info.plist" >/dev/null
+SIGN_ARGS=(--force --sign "${CODESIGN_IDENTITY:--}")
 if [[ "${CODESIGN_IDENTITY:--}" == "-" ]]; then
-  /usr/bin/codesign --force --deep --sign - --timestamp=none "$APP"
+  SIGN_ARGS+=(--timestamp=none)
 else
-  /usr/bin/codesign --force --deep --options runtime --timestamp --sign "$CODESIGN_IDENTITY" "$APP"
+  SIGN_ARGS+=(--options runtime --timestamp)
 fi
+FRAMEWORK="$APP/Contents/Frameworks/Sparkle.framework"
+/usr/bin/codesign "${SIGN_ARGS[@]}" "$FRAMEWORK/Versions/B/XPCServices/Installer.xpc"
+/usr/bin/codesign "${SIGN_ARGS[@]}" --preserve-metadata=entitlements "$FRAMEWORK/Versions/B/XPCServices/Downloader.xpc"
+/usr/bin/codesign "${SIGN_ARGS[@]}" "$FRAMEWORK/Versions/B/Autoupdate"
+/usr/bin/codesign "${SIGN_ARGS[@]}" "$FRAMEWORK/Versions/B/Updater.app"
+/usr/bin/codesign "${SIGN_ARGS[@]}" "$FRAMEWORK"
+/usr/bin/codesign "${SIGN_ARGS[@]}" "$APP"
 /usr/bin/codesign --verify --deep --strict "$APP"
 
 printf 'Built:\n%s\n' "$APP"

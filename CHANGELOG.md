@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.8 — 2026-09-05
+
+- Restores usage readings on Codex 26.901.41600 by using its desktop HTTP client and fetch service; removes the rejected legacy bridge request.
+- Adds Sparkle updates with manual checks and separate opt-in controls for automatic checks and installation; both default to off.
+- Signs update feeds and archives with Ed25519; release tooling creates the GitHub-hosted appcast alongside notarized DMG and ZIP downloads.
+- Resolves the loaded client without hardcoding asset hashes or minified export names.
+- Updates browser tests for the current API client, weekly primary windows, unavailable clients, and browser-local date formatting.
+
 ## 1.0.7 — 2026-08-16
 
 - Automatically takes over a freshly opened Codex when Pacer is already running.
