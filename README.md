@@ -13,7 +13,7 @@ Limit Pacer lives right below **Usage** in your Codex account menu.
 
 1. Download the latest [DMG](../../releases/latest).
 2. Drag **Codex Limit Pacer** to **Applications**, then open it.
-3. If prompted, let it restart Codex once. Then open your account menu.
+3. Open your account menu. If the rows are missing, choose **Restart Codex with menu access…** from the Pacer menu when it is safe.
 
 It adds the reset date, **Week elapsed**, and **Quota used**. No Settings visit, copied reset date, or extra login.
 Published DMG releases are universal apps signed with Developer ID and notarized by Apple. Local source builds use ad-hoc signing by default.
@@ -36,7 +36,8 @@ Updating restarts Pacer only.
 - Independent, unofficial, and not affiliated with OpenAI.
 - Reads the signed-in desktop session locally once per minute; it never stores tokens or sends telemetry.
 - It reads usage through Codex’s loaded desktop HTTP client, which handles the signed-in session. This is undocumented behavior, so a Codex update may require a Pacer update.
-- When Pacer is already running, it automatically relaunches a freshly opened Codex with local menu access. It reconnects after renderer interruptions and asks before restarting an existing Codex session.
+- When Pacer is already running, it automatically relaunches a freshly opened Codex with local menu access.
+- Temporary connection failures are retried silently. Pacer never opens an automatic restart prompt over an existing Codex session; a manual restart remains available from its menu.
 
 ## Build from source
 

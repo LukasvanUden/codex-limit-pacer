@@ -139,7 +139,7 @@ async function waitForStatus(client, state = 'active') {
 
 test('ships the live injector instead of a copied test implementation', () => {
   const source = buildInjectorSource();
-  assert.match(source, /version: '1\.0\.8'/);
+  assert.match(source, /version: '1\.0\.9'/);
   assert.match(source, /safeGet\('\/wham\/usage'/);
   assert.doesNotMatch(source, /sendMessageFromView/);
   assert.match(source, /Math\.abs\(duration - WEEK_SECONDS\) <= WEEK_TOLERANCE_SECONDS/);

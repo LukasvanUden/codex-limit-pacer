@@ -2,7 +2,7 @@
 set -euo pipefail
 
 clear
-printf '\nCodex Limit Pacer 1.0.8 – Source installer\n'
+printf '\nCodex Limit Pacer 1.0.9 – Source installer\n'
 printf '=============================================\n\n'
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -34,9 +34,9 @@ cat <<'TEXT'
 
 Installed to ~/Applications/Codex Limit Pacer.app.
 
-Limit Pacer is now in the macOS menu bar. It asks before the one Codex restart
-needed to insert the two rows into the account menu. Once restarted, simply
-open the account menu; no Usage & billing visit or extra login is needed.
+Limit Pacer is now in the macOS menu bar. If the rows do not appear, choose
+"Restart Codex with menu access…" from the Pacer menu when it is safe. Pacer
+does not interrupt an existing Codex session with automatic restart prompts.
 TEXT
 
 printf '\n'

@@ -19,9 +19,9 @@
     <key>CFBundlePackageType</key>
     <string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.0.8</string>
+	<string>1.0.9</string>
 	<key>CFBundleVersion</key>
-	<string>10</string>
+	<string>11</string>
     <key>SUFeedURL</key>
     <string>https://github.com/LukasvanUden/codex-limit-pacer/releases/latest/download/appcast.xml</string>
     <key>SUPublicEDKey</key>

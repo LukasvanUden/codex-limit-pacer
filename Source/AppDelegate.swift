@@ -9,7 +9,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, SPUSta
     private var statusItem: NSStatusItem!
     private var menu: NSMenu!
     private var currentState: CDPManager.ConnectionState = .stopped
-    private var promptIsVisible = false
     private var codexLaunchMonitor: Timer?
     private var observedCodexPID: pid_t?
     private lazy var updaterController = SPUStandardUpdaterController(
@@ -66,28 +65,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, SPUSta
             guard let self else { return }
             self.currentState = state
             self.rebuildMenu()
-            if state == .restartRequired, CodexAppLocator.runningApplication() != nil {
-                self.presentRestartExplanation()
-            }
         }
     }
 
     private func connectOrOfferRestart() {
         cdpManager.start(port: AppPreferences.debugPort)
-    }
-
-    private func presentRestartExplanation() {
-        guard !promptIsVisible else { return }
-        promptIsVisible = true
-        NSApp.activate(ignoringOtherApps: true)
-        let alert = NSAlert()
-        alert.messageText = "Restart Codex to place Limit Pacer inside the menu"
-        alert.informativeText = "A real element between Usage and Show pet requires Codex to start with local menu access. Running Codex work will be interrupted, so restart only when it is safe."
-        alert.addButton(withTitle: "Restart Codex now")
-        alert.addButton(withTitle: "Later")
-        let result = alert.runModal()
-        promptIsVisible = false
-        if result == .alertFirstButtonReturn { restartCodex(showConfirmation: false) }
     }
 
     private func restartCodex(showConfirmation: Bool) {
@@ -193,7 +175,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, SPUSta
         case .connecting: return "Connecting to Codex…"
         case .active(let detail): return "Active · \(detail)"
         case .waitingForMenu: return "Connected · open the account menu"
-        case .restartRequired: return "Restart Codex once to restore menu access"
+        case .restartRequired: return "Menu access unavailable · restart Codex below"
         case .unavailable(let detail): return detail
         }
     }
