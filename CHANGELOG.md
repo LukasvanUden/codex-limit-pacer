@@ -4,6 +4,7 @@
 
 - Removes the automatic Codex restart dialog when menu access is temporarily unavailable.
 - Keeps retrying silently and leaves the existing manual restart action in the menu bar.
+- Verified with four passing browser tests, the native renderer-recovery test, a universal local build, and the installed app reporting the 1.0.9 injection in Codex. The public signed and notarized release is still pending intentional real-world testing.
 
 ## 1.0.8 — 2026-09-05
 
